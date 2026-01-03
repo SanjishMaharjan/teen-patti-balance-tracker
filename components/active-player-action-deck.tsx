@@ -5,10 +5,13 @@ import { Ban, Eye } from "lucide-react";
 import { ActivePlayerInfo, PlayerInfoCard } from "./player-card";
 import { useFindActivePlayer } from "@/utils/useFindActivePlayer";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { useState } from "react";
 
 export default function ActionDeck() {
   const store = useGameStore();
   const activePlayer = useFindActivePlayer();
+  const [betAmount, setBetAmount] = useState("");
 
   // Logic: Calculate Min Bet based on Player's Blind/Seen status
   const currentStake = store.currentStake;
@@ -20,7 +23,40 @@ export default function ActionDeck() {
   const minBetAmount = isPlayerBlind ? currentStake : currentStake * 2;
   const doubleBetAmount = minBetAmount * 2;
 
+  const handleBetUpdate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow only numbers
+    if (/^\d*$/.test(value)) {
+      setBetAmount(value);
+    }
+  };
+
+  const handleBetBlur = () => {
+    if (!betAmount) return;
+
+    const numericValue = Number(betAmount);
+
+    if (numericValue < minBetAmount) {
+      setBetAmount(minBetAmount.toString());
+    }
+  };
+
   if (!activePlayer) return null;
+
+  const placeCustomBet = () => {
+    const amount = Number(betAmount);
+
+    if (!amount || amount < minBetAmount) {
+      setBetAmount(minBetAmount.toString());
+      return;
+    }
+
+    store.placeBet(
+      activePlayer.id,
+      amount,
+      activePlayer.isBlind ? "BLIND" : "SEEN"
+    );
+  };
 
   return (
     <div className="fixed bottom-0 left-0 w-full bg-slate-950 border-t border-slate-800 p-4 pb-8 z-40 shadow-2xl">
@@ -69,6 +105,15 @@ export default function ActionDeck() {
             <span className="text-[10px] uppercase opacity-75">Raise</span>
             <span className="text-2xl">रु {doubleBetAmount}</span>
           </button>
+
+          <Input
+            className="flex-1 bg-slate-950 border border-slate-800 rounded px-4 py-3 text-white"
+            placeholder="रु Paisa"
+            value={betAmount}
+            onChange={(e: any) => handleBetUpdate(e)}
+            onBlur={handleBetBlur}
+            onKeyDown={(e: any) => e.key === "Enter" && placeCustomBet()}
+          />
         </div>
       </div>
     </div>

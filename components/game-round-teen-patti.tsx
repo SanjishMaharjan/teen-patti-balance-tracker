@@ -4,10 +4,11 @@ import { useState } from "react";
 import { useGameStore } from "@/store/gameStore";
 import { Eye, EyeOff, Trophy, UserPlus, Play, Ban, History } from "lucide-react";
 import SetupScreen from "./setup-screen";
-import Header, { HistorySideBar } from "./header";
+import Header from "./header";
 import PlayerCard from "./player-card";
 import WinnerSelectionBanner from "./winner-selection-modal";
 import ActionDeck from "./active-player-action-deck";
+import { HistorySideBar } from "./history-sidebar";
 
 export default function TeenPattiGame() {
   const store = useGameStore();

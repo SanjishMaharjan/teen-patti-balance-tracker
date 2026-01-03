@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameState, BetType, Player } from '@/types/game';
+import { GameState, BetType, Player, RoundHistoryEntry, PotContribution } from '@/types/game';
 
 const getNextActivePlayerId = (players: Player[], currentId: string | null): string => {
   if (!currentId) return players[0]?.id;
@@ -121,11 +121,25 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  nextRound: (winnerId) => {
+   nextRound: (winnerId) => {
     const { players, pot, roundNumber, history } = get();
     const winner = players.find(p => p.id === winnerId);
+    
     if (!winner) return;
 
+    // We must do this BEFORE updating the players array below, 
+    // because that resets contribution amounts to 0.
+    const currentContributions: PotContribution[] = players.map(p => ({
+      playerId: p.id,
+      playerName: p.name,
+      playerAvatar: p.avatar,
+      amount: p.currentRoundContribution,
+      isWinner: p.id === winnerId
+    })).filter(c => c.amount > 0); // Only log players who actually put money in
+    // --------------------------------------------------
+
+
+    // Distribute Pot and Reset players for next round (Existing Logic)
     const updatedPlayers = players.map(p => {
       if (p.id === winnerId) {
         return {
@@ -133,26 +147,34 @@ export const useGameStore = create<GameState>((set, get) => ({
           totalWon: p.totalWon + pot,
           balance: p.balance + pot,
           status: "WAITING" as const,
-          currentRoundContribution: 0
+          isPacked: false,
+          isBlind: true, // Reset to blind for next round
+          currentRoundContribution: 0 // Resetting here
         };
       }
-      return { ...p, status: "WAITING" as const, currentRoundContribution: 0 };
+      // Reset losers
+      return { ...p, status: "WAITING" as const, isPacked: false, isBlind: true, currentRoundContribution: 0 };
     });
+
+    // Create new history entry with the snapshot
+    const newHistoryEntry: RoundHistoryEntry = {
+        roundNumber,
+        winnerName: winner.name,
+        winnerImage: winner.avatar,
+        pot,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), // Shorter time format
+        contributions: currentContributions // <-- Attach breakdown here
+    };
 
     set({
       players: updatedPlayers,
       pot: 0,
       roundNumber: roundNumber + 1,
-      history: [{
-        roundNumber,
-        winnerName: winner.name,
-        pot,
-        timestamp: new Date().toLocaleTimeString()
-      }, ...history],
+      history: [newHistoryEntry, ...history], // Add to front of array
       gameStatus: "SETUP",
       activePlayerId: null
     });
     
     get().startGame();
-  }
+  },
 }));

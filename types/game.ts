@@ -18,8 +18,20 @@ export interface Player {
 export interface RoundHistoryEntry {
   roundNumber: number;
   winnerName: string;
+  winnerImage: string;
   pot: number;
   timestamp: string;
+  contributions: PotContribution[]; 
+}
+
+//  Defines one player's contribution to a pot in a round
+
+export interface PotContribution {
+  playerId: string;
+  playerName: string;
+  playerAvatar: string;
+  amount: number;
+  isWinner: boolean;
 }
 
 export interface GameState {
